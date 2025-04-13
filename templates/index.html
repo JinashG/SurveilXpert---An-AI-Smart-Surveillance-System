@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SurveilXpert Alerts</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <Style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        h1{
+            text-align: center;
+            padding: 20px;
+            font-size: 2rem;
+        }
+        li{
+            list-style-type: none;
+            color: green;
+            background-color: white;
+            margin: 10px;
+            padding: 20px;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button{
+            padding: 10px 20px;
+            background-color: red;
+            color: white;
+            border-radius: 5px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .alerts_container{
+            height: 70vh;
+            width: 50vw;
+            overflow-y: auto;
+        }
+        body::-webkit-scrollbar {
+            width: 1em;
+        }
+        body::-webkit-scrollbar-track {
+            box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+        }
+        body::-webkit-scrollbar-thumb {
+            background-color: darkgrey;
+            outline: 1px solid slategrey;
+        }
+    </Style>
+    <script>
+        var socket = io.connect('http://localhost:5000');
+        
+        socket.on('new_alert', function(alert) {
+            var alertList = document.getElementById("alerts");
+            var alertItem = document.createElement("li");
+            alertItem.textContent = `[${alert.timestamp}] ${alert.type.toUpperCase()} - ${alert.anomaly}`;
+            
+            // Create a Delete button and append it to the alert item
+            var button = document.createElement("button");
+            button.textContent = "Delete";
+            button.onclick = function() {
+                deleteAlert(alert); // Call deleteAlert for this specific alert
+            };
+            
+            alertItem.appendChild(button); // Append button inside the alert item
+            alertList.appendChild(alertItem);
+        });
+
+        function fetchAlerts() {
+            fetch('/alerts')
+                .then(response => response.json())
+                .then(data => {
+                    var alertList = document.getElementById("alerts");
+                    alertList.innerHTML = "";
+                    data.forEach(alert => {
+                        var alertItem = document.createElement("li");
+                        alertItem.textContent = `[${alert.timestamp}] ${alert.type.toUpperCase()} - ${alert.anomaly}`;
+                        
+                        var button = document.createElement("button");
+                        button.textContent = "Delete";
+                        button.onclick = function() {
+                            deleteAlert(alert); // Call deleteAlert for this specific alert
+                        };
+
+
+                //for adding the delete button inside the alert item
+                
+                       // alertItem.appendChild(button);
+                        alertList.appendChild(alertItem);
+                    });
+                });
+        }
+
+        window.onload = fetchAlerts;
+
+        function Refresh() {
+            location.reload();
+        }
+
+        function Delete() {
+            fetch('/delete', {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                var alertList = document.getElementById("alerts");
+                alertList.innerHTML = "";
+            });
+        }
+
+        // Delete specific alert
+        function deleteAlert(alert) {
+            // You can either delete the alert from the server or locally:
+            fetch(`/delete_alert/${alert.timestamp}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    // Remove the alert from the list if successfully deleted
+                    var alertList = document.getElementById("alerts");
+                    var alertItems = alertList.getElementsByTagName("li");
+                    for (var i = 0; i < alertItems.length; i++) {
+                        if (alertItems[i].textContent.includes(alert.timestamp)) {
+                            alertList.removeChild(alertItems[i]);
+                            break;
+                        }
+                    }
+                });
+        }
+    </script>
+</head>
+<body>
+    <h1>SurveilXpert Alerts</h1>
+    <div class="alerts_container">
+        <ul id="alerts"></ul>
+    </div>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+        <button onclick="Refresh()" id="refresh">Refresh</button>
+        <button onclick="Delete()" id="fetch">Delete All</button>
+    </div>
+</body>
+</html>
